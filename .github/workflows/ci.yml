@@ -1,0 +1,20 @@
+name: checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Framing unit tests
+        run: |
+          c++ -std=gnu++17 -Isrc tests/test_format.cpp -o /tmp/t && /tmp/t | tail -3 && /tmp/t | grep -q "ALL TESTS PASSED"
+      - name: pluginInfo.json against FPP's schema
+        run: |
+          pip install --quiet jsonschema
+          curl -fsSL -o /tmp/s.json https://raw.githubusercontent.com/FalconChristmas/fpp-plugin-Template/master/pluginInfo.schema.json
+          python3 -c "import json,jsonschema; e=list(jsonschema.Draft202012Validator(json.load(open('/tmp/s.json'))).iter_errors(json.load(open('pluginInfo.json')))); assert not e, [x.message for x in e]"

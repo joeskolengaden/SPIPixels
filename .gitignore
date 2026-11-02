@@ -1,0 +1,5 @@
+*.o
+*.so
+tests/t
+__pycache__/
+.DS_Store

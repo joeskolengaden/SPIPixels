@@ -1,0 +1,22 @@
+name: release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: test "v$(cat VERSION)" = "${GITHUB_REF_NAME}"
+      - run: c++ -std=gnu++17 -Isrc tests/test_format.cpp -o /tmp/t && /tmp/t | grep -q "ALL TESTS PASSED"
+      - name: Bundle and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="$(cat VERSION)"; mkdir dist
+          git archive --format=tar --prefix="SPIPixels-$V/" HEAD | gzip -9n > "dist/SPIPixels-$V.tar.gz"
+          (cd dist && sha256sum "SPIPixels-$V.tar.gz" > SHA256SUMS)
+          awk -v v="$V" '$0 ~ "^## "v" " {f=1; next} /^## / {f=0} f' CHANGELOG.md > /tmp/notes.md
+          gh release create "${GITHUB_REF_NAME}" dist/* --title "SPIPixels ${GITHUB_REF_NAME}" --notes-file /tmp/notes.md
